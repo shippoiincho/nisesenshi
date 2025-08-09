@@ -34,6 +34,8 @@ GP28: MERQ
 GP29: IORQ
 GP30: WR
 GP31: RD
+5V: VUSB
+GND: GND
 ```
 
 ユニバーサル基板上の RAM の配線については、BAKUTENDO さんの説明をご覧ください。
