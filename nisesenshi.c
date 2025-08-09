@@ -53,9 +53,8 @@ uint8_t *romcarts=(uint8_t *)(ROMBASE);
 uint8_t ramcart[0x20000];
 uint8_t kanjiram[0x20000];
 uint8_t senshiram[0x2000];  // Senshi-RAM 8KB (for CS3 area)
-//uint8_t diskbuffer[0x400];  // For FDC emulation (TESTING)
 
-#define MAXROMPAGE 64       // = 128KiB * 60 pages = 7.5MiB
+#define MAXROMPAGE 64       // = 128KiB * 64 pages = 8MiB
 
 volatile uint8_t rompage=0xff;  // Page No of Senshi-cart (128KiB/page)
 volatile uint8_t rombank=0;     // Bank No of Senshi-cart
@@ -69,7 +68,8 @@ volatile uint32_t flash_command=0;
 //
 //  reset
 
-void __not_in_flash_func(z80reset)(void) {
+//void __not_in_flash_func(z80reset)(void) {
+void __not_in_flash_func(z80reset)(uint gpio,uint32_t event) {
 
     // Reset Bankno to Senshi-Cart
 
@@ -80,6 +80,7 @@ void __not_in_flash_func(z80reset)(void) {
     return;
 }
 
+#if 0
 static inline uint8_t io_read( uint16_t address)
 {
 
@@ -115,6 +116,7 @@ static inline uint8_t io_read( uint16_t address)
 
     return 0xff;
 }
+#endif
 
 static inline void io_write(uint16_t address, uint8_t data)
 {
@@ -124,6 +126,7 @@ static inline void io_write(uint16_t address, uint8_t data)
     switch(address&0xff) {
 
         case 0x70:  // Senshi-cart control
+        case 0x7f:  // For XeGrader
 
             rombank=data&0x1f;  // Max 32 Banks/cart
             return;
@@ -133,8 +136,7 @@ static inline void io_write(uint16_t address, uint8_t data)
             if(data!=0xff) {
 
                 rompage=data&0x3f;
-                flash_command=0x10000000|rompage;
-//                multicore_fifo_push_blocking(0x10000000|rompage);   // Send command to Core 0        
+                flash_command=0x10000000|rompage;     
                 return;
 
             } else {
@@ -190,7 +192,7 @@ void __not_in_flash_func(main_core1)(void) {
 
     uint32_t control,address,data,response;
 
-    multicore_lockout_victim_init();
+//    multicore_lockout_victim_init();
 
     gpio_init_mask(0xffffffff);
     gpio_set_dir_all_bits(0x00000000);  // All pins are INPUT
@@ -205,19 +207,17 @@ void __not_in_flash_func(main_core1)(void) {
 
             address=(bus&0x1fff00)>>8;
 
-                // Set GP0-7 to OUTPUT
+            // Set GP0-7 to OUTPUT
             
-                gpio_set_dir_masked(0xff,0xff);
+            gpio_set_dir_masked(0xff,0xff);
 
-                data=ramcart[address+rombank*0x2000];
+            data=ramcart[address+rombank*0x2000];
 
-                // Set Data
+            // Set Data
 
-                gpio_put_masked(0xff,data);
+            gpio_put_masked(0xff,data);
 
-//            }
-
-                // Wait while RD# is low
+            // Wait while RD# is low
 
             while(control==0) {
                 bus=gpio_get_all();
@@ -252,7 +252,6 @@ void __not_in_flash_func(main_core1)(void) {
             while(control==0) {
                 bus=gpio_get_all();
                 control=bus&0x80000000;
-//                control=bus&0x08000000;
             }
 
             // Set GP0-7 to INPUT
@@ -266,7 +265,7 @@ void __not_in_flash_func(main_core1)(void) {
         // Check MERQ# & WR# (Senshi-RAM Write)
         // Senshi-RAM is written by accessing from 0x6000 to 0x7fff for RAM. (Both MAIN and EXT RAM)
 #if 1
-        if((bus&0x60000000)==0) {
+        if((bus&0x50000000)==0) {
 
             address=(bus&0xffff00)>>8;
 

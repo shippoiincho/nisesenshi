@@ -1,6 +1,6 @@
 # 偽戦士のカートリッジ for PC-6001mk2/SR
 
-![nisepac2 on PASOPIA7](/pictures/onpasopia.jpg)
+![nisesenshi on 6001mk2SR](/pictures/board2.jpg)
 
 ## これはなに？
 
@@ -41,12 +41,13 @@ GP31: RD
 ---
 ## 拡張漢字ROM
 
-![Extended KANJI](/pictures/exkanji.jpg)
+![Extended KANJI](/pictures/extkanji.jpg)
 
 拡張漢字ROM のエミュレートをします。
 あらかじめ picotool などで漢字 ROM のデータを書き込んでおく必要があります。
 
-BASIC 起動時に内容のチェックを行っているので、たぶん純正 ROM のデータが必要です。
+BASIC 起動時に内容のチェックを行っているので、純正 ROM のデータが必要です。
+(PC-8801 の漢字ROM のデータが使えるという説も？)
 
 ```
 picotool.exe load -v -x kanji.rom  -t bin -o 0x10060000
@@ -54,8 +55,6 @@ picotool.exe load -v -x kanji.rom  -t bin -o 0x10060000
 
 ---
 ## 戦士カートリッジ互換機能
-
-![RAMPAC](/pictures/rampac.jpg)
 
 128KiB のメガロムをエミュレートします。
 ポート 70H でバンク切り替えをする、初代戦士カートリッジ(ベルーガカートリッジ)に相当します。
@@ -72,6 +71,8 @@ picotool.exe load -v -x kanji.rom  -t bin -o 0x10060000
 ```
 OUT &H77,1
 ```
+
+切り替えたのちにリセットボタンを押すと ROM から起動します。
 
 あまり意味はありませんが、現在の ROM の番号は以下の方法で取得できます。
 
