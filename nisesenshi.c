@@ -3,11 +3,11 @@
 //  PC-6001 Cart connector
 //
 //  GP0-7:  D0-7
-//  GP8-23: AD0-15
+//  GP8-23: A0-15
 //  GP25: RESET -> Interrupt
 //  GP26: CS2
-//  GP27: CS3 (Not Used)
-//  GP28: MERQ (Not Used)
+//  GP27: CS3
+//  GP28: MERQ
 //  GP29: IORQ
 //  GP30: WR
 //  GP31: RD
@@ -62,20 +62,7 @@ volatile uint8_t rombank=0;     // Bank No of Senshi-cart
 
 uint32_t kanjiptr=0;
 volatile uint8_t kanji_enable=0;
-
-#if 0
-struct repeating_timer timer;
-volatile uint32_t vscount=0;
-volatile uint32_t vsflag=0;
-volatile uint32_t rampac1count=0;
-volatile uint32_t rampac1save=0;
-volatile uint32_t rampac2count=0;
-volatile uint32_t rampac2save=0;
-#endif
-
-//
-
-// volatile uint32_t flashcommand=0;
+volatile uint32_t flash_command=0;
 
 // uint8_t __attribute__  ((aligned(sizeof(unsigned char *)*4096))) flash_buffer[4096];
 
@@ -146,13 +133,13 @@ static inline void io_write(uint16_t address, uint8_t data)
             if(data!=0xff) {
 
                 rompage=data&0x3f;
-                multicore_fifo_push_blocking(0x10000000|rompage);   // Send command to Core 0        
+                flash_command=0x10000000|rompage;
+//                multicore_fifo_push_blocking(0x10000000|rompage);   // Send command to Core 0        
                 return;
 
             } else {
 
-                rompage=0xff;
-                multicore_fifo_push_blocking(0x10000000|rompage);   // Send command to Core 0        
+                rompage=0xff;      
                 return;                
 
             }
@@ -184,7 +171,6 @@ void init_emulator(void) {
     kanji_enable=0;
     kanjiptr=0;
     rombank=0;
-    romcarts=0;
 
     // Copy KANJI ROM to RAM
 
@@ -192,21 +178,17 @@ void init_emulator(void) {
 
     // Clear ROM Cart
 
-//    memset(ramcart,0,0x20000);
-    memcpy(ramcart,romcarts,0x20000);
+    memset(ramcart,0,0x20000);
 
 }
 
 // Main thread (Core1)
 
 void __not_in_flash_func(main_core1)(void) {
-//void main_core1(void) {
 
     volatile uint32_t bus;
 
     uint32_t control,address,data,response;
-
-//    uint32_t redraw_start,redraw_length;
 
     multicore_lockout_victim_init();
 
@@ -218,16 +200,10 @@ void __not_in_flash_func(main_core1)(void) {
         bus=gpio_get_all();
 
         // Check CS2# (GP26) & RD#
-#if 0
+
         if((bus&0x84000000)==0) {
 
-//            address=(bus&0x1fff00)>>8;
-
-            address=(bus&0xffff00)>>8;
-
-            if((rompage!=0xff)&&(address>=0x4000)&&(address<0x6000)) {
-
-                address&=0x1fff;
+            address=(bus&0x1fff00)>>8;
 
                 // Set GP0-7 to OUTPUT
             
@@ -239,14 +215,13 @@ void __not_in_flash_func(main_core1)(void) {
 
                 gpio_put_masked(0xff,data);
 
-            }
+//            }
 
                 // Wait while RD# is low
 
             while(control==0) {
                 bus=gpio_get_all();
                 control=bus&0x80000000;
-//                control=bus&0x04000000;
             }
 
             // Set GP0-7 to INPUT
@@ -255,19 +230,12 @@ void __not_in_flash_func(main_core1)(void) {
 
             continue;
         }
-#endif
 
-        // Check CS3# (GP27) & RD# (Senshi-RAM)
-#if 0
+        // Check CS3# (GP27) & RD# (Senshi-RAM Read)
+#if 1
         if((bus&0x88000000)==0) {
 
-//            address=(bus&0x1fff00)>>8;
-
-            address=(bus&0xffff00)>>8;
-
-            if((address>=0x6000)&&(address<0x8000)) {
-
-            address&=0x1fff;
+            address=(bus&0x1fff00)>>8;
 
             // Set GP0-7 to OUTPUT
             
@@ -280,8 +248,6 @@ void __not_in_flash_func(main_core1)(void) {
             gpio_put_masked(0xff,data);
 
             // Wait while RD# is low
-
-            }
 
             while(control==0) {
                 bus=gpio_get_all();
@@ -297,26 +263,20 @@ void __not_in_flash_func(main_core1)(void) {
         }
 #endif
 
-        // Check MERQ# & WR# (Senshi-RAM)
+        // Check MERQ# & WR# (Senshi-RAM Write)
         // Senshi-RAM is written by accessing from 0x6000 to 0x7fff for RAM. (Both MAIN and EXT RAM)
-#if 0
+#if 1
         if((bus&0x60000000)==0) {
-
-//            address=(bus&0x1fff00)>>8;
 
             address=(bus&0xffff00)>>8;
 
             if((address>=0x6000)&&(address<0x8000)) {
-
-            address&=0x1fff;
-
-            // Set GP0-7 to OUTPUT
-            
-            senshiram[address]=bus&0xff;
-
-            // Wait while WR# is low
+                address&=0x1fff;
+                senshiram[address]=bus&0xff;
 
             }
+
+            // Wait while WR# is low
 
             while(control==0) {
                 bus=gpio_get_all();
@@ -444,23 +404,23 @@ int main() {
 
     // Set RESET# interrupt
 
-    gpio_add_raw_irq_handler(25,z80reset);
+//    gpio_add_raw_irq_handler(25,z80reset);
+//    gpio_set_irq_enabled(25,GPIO_IRQ_EDGE_FALL,true);
+
+    gpio_set_irq_enabled_with_callback(25,GPIO_IRQ_EDGE_FALL,true,z80reset);
 
     while(1) {
 
-        if(multicore_fifo_rvalid()) {
+        if(flash_command!=0) {
 
-            uint32_t command=multicore_fifo_pop_blocking();
-
-            switch(command&0xf0000000) {
+            switch(flash_command&0xf0000000) {
 
                 case 0x10000000:
                     memcpy(ramcart,romcarts+rompage*0x20000,0x20000);
                     rombank=0;
                     break;
             }
-
-            // Change ROM cart
+            flash_command=0;
 
         }
     }
