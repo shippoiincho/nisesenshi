@@ -34,7 +34,7 @@
 // WeACT RP2350B with 16MiB Flash
 // ExtKanji ROM 128KiB
 // Senshi-ROM   128KiB * 64 = 8MiB
-// LittleFS       7.5MiB
+// LittleFS       7.5MiB (Not Used)
 
 #define ROMBASE 0x10080000u
 
@@ -232,7 +232,7 @@ void __not_in_flash_func(main_core1)(void) {
         }
 
         // Check CS3# (GP27) & RD# (Senshi-RAM Read)
-#if 1
+
         if((bus&0x88000000)==0) {
 
             address=(bus&0x1fff00)>>8;
@@ -260,11 +260,10 @@ void __not_in_flash_func(main_core1)(void) {
 
             continue;
         }
-#endif
 
         // Check MERQ# & WR# (Senshi-RAM Write)
         // Senshi-RAM is written by accessing from 0x6000 to 0x7fff for RAM. (Both MAIN and EXT RAM)
-#if 1
+
         if((bus&0x50000000)==0) {
 
             address=(bus&0xffff00)>>8;
@@ -285,12 +284,11 @@ void __not_in_flash_func(main_core1)(void) {
 
             continue;
         }
-#endif
 
         control=bus&0xf0000000;
 
         // Check IO Read
-#if 1
+
         if(control==0x50000000) {
 
             address=(bus&0xffff00)>>8;
@@ -362,7 +360,7 @@ void __not_in_flash_func(main_core1)(void) {
 
             continue;
         }
-#endif
+
         // Check IO Write
 
         if(control==0x90000000) {

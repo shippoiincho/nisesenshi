@@ -37,7 +37,7 @@ pico_sdk_init()
 
 add_executable(nisesenshi nisesenshi.c )
 
-target_sources(nisesenshi PRIVATE nisesenshi.c hid_app.c joystick.c hidparser/hidparser.c)
+target_sources(nisesenshi PRIVATE nisesenshi.c)
 
 pico_set_program_name(nisesenshi "nisesenshi")
 pico_set_program_version(nisesenshi "0.1")
@@ -48,7 +48,7 @@ pico_enable_stdio_usb(nisesenshi 0)
 
 # Add the standard library to the build
 target_link_libraries(nisesenshi  
-        hardware_flash hardware_vreg pico_multicore tinyusb_host tinyusb_board pico_stdlib)
+        hardware_flash hardware_vreg pico_multicore pico_stdlib)
 
 # Add the standard include files to the build
 target_include_directories(nisesenshi PRIVATE
