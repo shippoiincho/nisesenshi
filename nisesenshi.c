@@ -219,6 +219,7 @@ void __not_in_flash_func(main_core1)(void) {
 
             // Wait while RD# is low
 
+            control=0;
             while(control==0) {
                 bus=gpio_get_all();
                 control=bus&0x80000000;
@@ -249,6 +250,7 @@ void __not_in_flash_func(main_core1)(void) {
 
             // Wait while RD# is low
 
+            control=0;
             while(control==0) {
                 bus=gpio_get_all();
                 control=bus&0x80000000;
@@ -276,6 +278,7 @@ void __not_in_flash_func(main_core1)(void) {
 
             // Wait while WR# is low
 
+            control=0;
             while(control==0) {
                 bus=gpio_get_all();
                 control=bus&0x40000000;
@@ -338,6 +341,7 @@ void __not_in_flash_func(main_core1)(void) {
 
                 // Wait while RD# is low
 
+                control=0;
                 while(control==0) {
                     bus=gpio_get_all();
                     control=bus&0x80000000;
@@ -351,6 +355,7 @@ void __not_in_flash_func(main_core1)(void) {
 
                 // Wait while RD# is low
 
+                control=0;
                 while(control==0) {
                     bus=gpio_get_all();
                     control=bus&0x80000000;
@@ -371,6 +376,8 @@ void __not_in_flash_func(main_core1)(void) {
             io_write(address,data);
 
             // Wait while WR# is low
+
+            control=0;
             while(control==0) {
                 bus=gpio_get_all();
                 control=bus&0x40000000;
